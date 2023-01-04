@@ -14,6 +14,12 @@ from scipy.spatial.distance import  cdist
 from sklearn import linear_model
 import tqdm as tqdm
 
+import matplotlib.pyplot as plt
+import geopandas as gpd
+from shapely.geometry import Point, Polygon
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import contextily as cx
+
 #%%
 def summarygaps(df: pd.pandas.core.frame.DataFrame, coordsdf: pd.pandas.core.frame.DataFrame):
     """
@@ -23,11 +29,15 @@ def summarygaps(df: pd.pandas.core.frame.DataFrame, coordsdf: pd.pandas.core.fra
         dataframe with already set an datetime index, and unique codes as columns. 
     
     coordsdf: dataset[y x 2]: 
-        dataframe with its index as the same codes as the df columns, plus a X and Y gepgraphic coordinates. 
+        dataframe with its index as the same codes as the df columns, plus a X and Y gepgraphic coordinates (please follow this order). 
     
     Returns
     --------------------
-    pandas.DataFrame [n x 2] with columns:
+    pandas.DataFrame [n x 4] with columns:
+        'CoordX': Coordinates X
+        
+        'CoordY': Coordinates Y
+        
         'NumGaps': Number of gaps per column
         
         'PercentageGaps': Percentage of gaps per column (%)
@@ -45,6 +55,10 @@ def summarygaps(df: pd.pandas.core.frame.DataFrame, coordsdf: pd.pandas.core.fra
     # Calculate the percentage of failures per point:
     desc = df.describe()
     percerrorsdf = pd.DataFrame(index = coordsdf.index)
+    
+    percerrorsdf["CoordX"] = coordsdf.iloc[:,0]
+    percerrorsdf["CoordY"] = coordsdf.iloc[:,1]
+    
     percerrorsdf["NumGaps"] = numrows - desc.iloc[0,:]
     percerrorsdf["PercentageGaps"] = (1 - desc.iloc[0,:]/numrows)*100
     
@@ -311,9 +325,85 @@ def fillgapslr(nonfilleddata: pd.pandas.core.frame.DataFrame, coords: pd.pandas.
     # It is possible that negative values will be calculated, thus we replace them per 0:
     filleddata[filleddata < 0.1] = 0
     
-    return filleddata, r2list
+    r2listdf = pd.DataFrame(index = filleddata.columns, columns = ["Mean","Min","Max"], data = r2list) 
+    
+    return filleddata, r2listdf
 
 #%%
+def plotgaps(summarygapsstations: pd.pandas.core.frame.DataFrame, crsproj = 'epsg:4326', backmapproj = True, figsizeproj = (15, 30), cmapproj = "Reds"):
+    """
+    Inputs
+    ------------------
+    df: dataset[n x y]: 
+        dataframe with already set an datetime index, and unique codes as columns. 
+    
+    coordsdf: dataset[y x 2]: 
+        dataframe with its index as the same codes as the df columns, plus a X and Y gepgraphic coordinates. 
+    
+    Returns
+    --------------------
+    pandas.DataFrame [n x 2] with columns:
+        'NumGaps': Number of gaps per column
+        
+        'PercentageGaps': Percentage of gaps per column (%)
+    """
+    if backmapproj == True:
+        
+        if crsproj == 'epsg:4326':
+        
+            crs = {'init': crsproj}
+            geometry = [Point(xy) for xy in zip(summarygapsstations["CoordX"], summarygapsstations["CoordY"])]
+            geodata=gpd.GeoDataFrame(summarygapsstations,crs=crs, geometry=geometry)
+            geodatacond = geodata
+
+            # The conversiojn is needed due to the projection of the basemap:
+            geodatacond = geodatacond.to_crs(epsg=3857)
+
+            # Plot the figure and set size:
+            fig, ax = plt.subplots(figsize = figsizeproj)
+
+            #Organizing the legend:
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="5%", pad=0.1)
+
+            #Ploting:
+            geodatacond.plot(ax=ax, column='PercentageGaps', legend=True, cax = cax, cmap = "Reds")
+            cx.add_basemap(ax)
+        
+        else:
+            crs = {'init': crsproj}
+            geometry = [Point(xy) for xy in zip(summarygapsstations["CoordX"], summarygapsstations["CoordY"])]
+            geodata=gpd.GeoDataFrame(summarygapsstations,crs=crs, geometry=geometry)
+            geodatacond = geodata
+
+            # Plot the figure and set size:
+            fig, ax = plt.subplots(figsize = figsizeproj)
+
+            #Organizing the legend:
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="5%", pad=0.1)
+        
+            #Ploting:
+            geodatacond.plot(ax=ax, column='PercentageGaps', legend=True, cax = cax, cmap = cmapproj)
+        
+    else:
+        crs = {'init': crsproj}
+        geometry = [Point(xy) for xy in zip(summarygapsstations["CoordX"], summarygapsstations["CoordY"])]
+        geodata=gpd.GeoDataFrame(summarygapsstations,crs=crs, geometry=geometry)
+        geodatacond = geodata
+
+        # Plot the figure and set size:
+        fig, ax = plt.subplots(figsize = figsizeproj)
+
+        #Organizing the legend:
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.1)
+        
+        #Ploting:
+        geodatacond.plot(ax=ax, column='PercentageGaps', legend=True, cax = cax, cmap = cmapproj)   
+            
+    
+    return plt.show()
 
 
 
