@@ -1,4 +1,4 @@
-# filling-series-lr
+# gapfilling-timeseries
 This code makes use of linear regression (either multiple or simple) to fill gaps in time series.
 
 
