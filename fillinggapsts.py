@@ -334,18 +334,15 @@ def plotgaps(summarygapsstations: pd.pandas.core.frame.DataFrame, crsproj = 'eps
     """
     Inputs
     ------------------
-    df: dataset[n x y]: 
-        dataframe with already set an datetime index, and unique codes as columns. 
-    
-    coordsdf: dataset[y x 2]: 
-        dataframe with its index as the same codes as the df columns, plus a X and Y gepgraphic coordinates. 
+    summarygapsstations: dataset[y x 4]: 
+        The same dataframe output from the fillinggaps.summarygaps function.
     
     Returns
     --------------------
-    pandas.DataFrame [n x 2] with columns:
-        'NumGaps': Number of gaps per column
+    plt.plot: The output is a plt.plot with the points spatially distributed in the area, and with a legend bar 
+        showing the percentage of gaps (from 1 to 100). A background map can be also shown if your coordinate system 
+        "crsproj" is set to 'epsg:4326'.
         
-        'PercentageGaps': Percentage of gaps per column (%)
     """
     if backmapproj == True:
         
